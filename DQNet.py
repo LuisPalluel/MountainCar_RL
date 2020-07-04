@@ -15,24 +15,13 @@ DQN = nn.Sequential(
 
 class DQNet(nn.Module):
 
-    def __init__(self, h, w, outputs, shape):
+    def __init__(self, state_space, action_space):
         super(DQNet, self).__init__()
 
-        def conv2d_size_out(size, kernel_size=5, stride=2):
-            return (size - (kernel_size - 1) - 1) // stride + 1
-        convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
-        convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
-
-        linear_input_size = convw * convh * 32
-        self.conv = DQN.to('cpu')
-        self.flatten = nn.Flatten()
-
-        ones = torch.ones(shape)
-        x = self.conv(torch.ones(shape))
-        x = self.flatten(x)
-        self.head = nn.Linear(x.shape[1], outputs)
+        hidden_units = 200
+        self.input_layer = nn.Linear(state_space, hidden_units, bias=False)
+        self.output_layer = nn.Linear(hidden_units, action_space, bias=False)
 
     def forward(self, x):
-        x = self.conv(x)
-        x = self.flatten(x)
-        return self.head(x)
+        x = self.input_layer(x)
+        return self.output_layer(x)

@@ -14,9 +14,6 @@ resize = T.Compose([T.ToPILImage(),
                     T.Resize(40, interpolation=Image.CUBIC),
                     T.ToTensor()])
 
-def get_screen(env, device):
-    screen = env.render(mode='rgb_array').transpose((2, 0, 1))
-    return resize(screen).unsqueeze(0).to(device)
 
 def select_action(state, steps_done, policy_net, n_actions, args, device):
     sample = random.random()
@@ -25,7 +22,7 @@ def select_action(state, steps_done, policy_net, n_actions, args, device):
     steps_done += 1
     if sample > eps_threshold:
         with torch.no_grad():
-            return policy_net(state).max(1)[1].view(1, -1)
+            return policy_net(state).max(0)[1].view(1, -1)
     else:
         return torch.tensor([[random.randrange(n_actions)]], device=device, dtype=torch.long)
 
@@ -38,9 +35,9 @@ def optimize_model(policy_net, target_net, memory, optimizer, args, device):
     batch = Transition(*zip(*transitions))
 
     non_final_mask = torch.tensor(tuple(map(lambda s: s is not None, batch.next_state)), device=device, dtype=torch.bool)
-    non_final_next_states = torch.cat([s for s in batch.next_state if s is not None])
+    non_final_next_states = torch.stack([s for s in batch.next_state if s is not None])
 
-    state_batch = torch.cat(batch.state)
+    state_batch = torch.stack(batch.state)
     action_batch = torch.cat(batch.action)
     reward_batch = torch.cat(batch.reward)
 
@@ -84,3 +81,9 @@ def plot_durations(episode_durations):
     if is_ipython:
         display.clear_output(wait=True)
         display.display(plt.gcf())
+
+if __name__ == '__main__':
+    a = torch.Tensor([0., 0., 0.])
+    b = torch.tensor([True, False, True], device="cpu", dtype=torch.bool)
+    a[b] = torch.Tensor([1, 2, 3]).max(1)
+    print(a)
